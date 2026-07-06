@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.db
+node_modules/
+dist/
+.env
+uploads/
+chroma_data/
+postgres_data/
+file_data/
