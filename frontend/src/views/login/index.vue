@@ -46,10 +46,14 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    await authStore.login(form.email, form.password)
+    const profile = await authStore.login(form.email, form.password)
     ElMessage.success('登录成功')
-    const redirect = (route.query.redirect as string) || '/dashboard'
-    router.push(redirect)
+    // Redirect by role
+    const role = profile?.role_type || 'admin'
+    let target = (route.query.redirect as string) || '/dashboard'
+    if (role === 'customer_sub') target = '/paid-dashboard'
+    else if (role === 'business_operator') target = '/demo-search'
+    router.push(target)
   } catch (err: any) {
     ElMessage.error(err.response?.data?.error || '登录失败，请检查邮箱和密码')
   } finally {

@@ -15,6 +15,18 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!token.value)
 
+  // Verify role from server on every page load (prevents stale localStorage bypass)
+  async function initAuth() {
+    if (!token.value) return
+    try {
+      const profile = await authApi.getMe()
+      user.value = profile
+      localStorage.setItem(USER_KEY, JSON.stringify(profile))
+    } catch {
+      clearAuth()
+    }
+  }
+
   function hasPermission(perm: string): boolean {
     return permissions.value.includes(perm) || user.value?.is_super_admin === true
   }

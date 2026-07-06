@@ -157,12 +157,42 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '服务档位', hidden: true, permission: 'billing:read' },
       },
       {
+        path: 'account/sub-accounts',
+        name: 'SubAccounts',
+        component: () => import('@/views/subscription/SubAccounts.vue'),
+        meta: { title: '子账号管理', hidden: true, permission: 'subaccount:read' },
+      },
+      {
+        path: 'account/payments',
+        name: 'Payments',
+        component: () => import('@/views/subscription/Payments.vue'),
+        meta: { title: '付费记录', hidden: true, permission: 'payment:read' },
+      },
+      {
         path: 'account/profile',
         name: 'Profile',
         component: () => import('@/views/account/Profile.vue'),
         meta: { title: '个人设置', hidden: true },
       },
     ],
+  },
+  {
+    path: '/demo-search',
+    name: 'DemoSearch',
+    component: () => import('@/views/demo/DemoSearch.vue'),
+    meta: { title: '商务演示', noAuth: false },
+  },
+  {
+    path: '/customer-dashboard',
+    name: 'CustomerPortal',
+    component: () => import('@/views/subscription/CustomerPortal.vue'),
+    meta: { title: '客户门户', noAuth: false },
+  },
+  {
+    path: '/paid-dashboard',
+    name: 'PaidDashboard',
+    component: () => import('@/views/subscription/PaidDashboard.vue'),
+    meta: { title: '数据看板(智能体4+5)', noAuth: false },
   },
   {
     path: '/review/client/:token',
@@ -208,6 +238,29 @@ router.beforeEach((to, _from, next) => {
   // Check permission if route requires it
   if (to.meta.permission && !authStore.hasPermission(to.meta.permission as string)) {
     return next({ name: 'Forbidden' })
+  }
+
+  // Role-based access + redirect
+  const role = authStore.user?.role_type || 'guest'
+  const path = to.path
+  // guest (no role) → force login
+  if (role === 'guest') {
+    authStore.clearAuth()
+    return next({ name: 'Login' })
+  }
+  // business_operator: only demo-search, paid-dashboard, customer-dashboard, profile
+  if (role === 'business_operator') {
+    const allowed = ['/demo-search', '/customer-dashboard', '/paid-dashboard', '/dashboard', '/account/profile']
+    if (!allowed.some(a => path.startsWith(a))) {
+      return next('/demo-search')
+    }
+  }
+  // customer_sub: only paid-dashboard, customer-dashboard
+  if (role === 'customer_sub') {
+    const allowed = ['/customer-dashboard', '/paid-dashboard', '/dashboard', '/account/profile']
+    if (!allowed.some(a => path.startsWith(a))) {
+      return next('/paid-dashboard')
+    }
   }
 
   next()

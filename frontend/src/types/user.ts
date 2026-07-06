@@ -5,6 +5,7 @@ export interface UserInfo {
   phone?: string
   avatar_url?: string
   is_super_admin: boolean
+  role_type: string
   is_active: boolean
   customer_id?: string
   last_login_at?: string

@@ -24,6 +24,8 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String(30))
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     is_super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    role_type: Mapped[str] = mapped_column(String(30), nullable=False, default="admin")
+    # admin=运营/超管, business_operator=商务, customer_sub=客户子账号
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

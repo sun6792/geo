@@ -88,3 +88,5 @@ def _import_all_models():
     import app.models.agent  # noqa
     import app.models.billing  # noqa
     import app.models.template  # noqa
+    import app.models.subscription  # noqa
+    import app.models.demo_log  # noqa

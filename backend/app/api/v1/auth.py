@@ -56,6 +56,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         "phone": user.phone,
         "avatar_url": user.avatar_url,
         "is_super_admin": user.is_super_admin,
+        "role_type": user.role_type,
         "is_active": user.is_active,
         "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
         "created_at": user.created_at.isoformat() if user.created_at else None,

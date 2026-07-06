@@ -72,3 +72,7 @@ api_v1_router.include_router(template_router, prefix="/templates")
 
 # ── P4: Register extended channel adapters ────────────────────
 import app.integrations.publish.extended_channels  # noqa: F401 — auto-registers 15+ adapters
+
+# ── P5: Demo Query, Sub-accounts, Payments, Customer Portal ────
+from app.api.v1.p5_business import router as p5_router
+api_v1_router.include_router(p5_router)
