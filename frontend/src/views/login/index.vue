@@ -1,8 +1,8 @@
 <template>
   <div class="login-wrapper">
     <div class="login-card">
-      <h1 class="login-title">GEO AI 智能体运营系统</h1>
-      <p class="login-subtitle">企业级 GEO 全域智能体平台</p>
+      <h1 class="login-title">AI引流智能体运营系统</h1>
+      <p class="login-subtitle">企业级 AI引流 全域智能体平台</p>
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="handleLogin">
         <el-form-item prop="email">
           <el-input v-model="form.email" placeholder="请输入邮箱" prefix-icon="Message" />

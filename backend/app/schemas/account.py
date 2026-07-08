@@ -35,6 +35,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 class UserCreate(BaseModel):
+    username: Optional[str] = Field(None, max_length=100, description="登录用户名，拼音+数字")
     email: str = Field(..., max_length=320)
     password: str = Field(..., min_length=6, max_length=128)
     display_name: str = Field(..., min_length=1, max_length=100)

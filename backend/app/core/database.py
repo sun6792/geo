@@ -1,5 +1,6 @@
 """Async SQLAlchemy engine and session management — PostgreSQL + SQLite compatible."""
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import StaticPool
@@ -53,18 +54,11 @@ async def check_db_connection() -> bool:
     """Test database connectivity on startup. For SQLite, creates the file."""
     try:
         async with engine.connect() as conn:
-            await conn.execute("SELECT 1")
+            await conn.execute(text("SELECT 1"))
             await conn.commit()
         return True
     except Exception:
-        # For SQLite: file may not exist yet, but async engine creates it on connect
-        try:
-            async with engine.connect() as conn:
-                await conn.execute("SELECT 1")
-                await conn.commit()
-            return True
-        except Exception:
-            return False
+        return False
 
 
 async def init_db():
@@ -90,3 +84,8 @@ def _import_all_models():
     import app.models.template  # noqa
     import app.models.subscription  # noqa
     import app.models.demo_log  # noqa
+    import app.models.identity  # noqa  # P6: Enterprise identity + backflow + multimodal
+    import app.services.multi_model_probe.models  # noqa  # P6: Probe response/extraction/log/stats
+    import app.services.layered_diagnosis.models  # noqa  # P6: Diagnosis gap/rule/score history
+    import app.services.self_evolution.models  # noqa  # P6: Evolution metrics/benchmarks/growth snapshots
+    import app.integrations.llm_probe.models  # noqa  # P6: LLM probe results + progress

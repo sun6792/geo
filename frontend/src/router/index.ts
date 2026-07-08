@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '知识库管理', icon: 'Document' },
       },
       {
+        path: 'knowledge-base/profile',
+        name: 'EnterpriseProfile',
+        component: () => import('@/views/knowledge-base/EnterpriseProfile.vue'),
+        meta: { title: '企业信息库', hidden: true },
+      },
+      {
         path: 'knowledge-base/:id',
         name: 'AssetDetail',
         component: () => import('@/views/knowledge-base/AssetDetail.vue'),
@@ -192,7 +198,7 @@ const routes: RouteRecordRaw[] = [
     path: '/paid-dashboard',
     name: 'PaidDashboard',
     component: () => import('@/views/subscription/PaidDashboard.vue'),
-    meta: { title: '数据看板(智能体4+5)', noAuth: false },
+    meta: { title: '数据看板', noAuth: false },
   },
   {
     path: '/review/client/:token',
@@ -222,7 +228,7 @@ const router = createRouter({
 // Navigation guard — check auth
 router.beforeEach((to, _from, next) => {
   // Set page title
-  document.title = `${to.meta.title || 'GEO AI'} - GEO AI 智能体运营系统`
+  document.title = `${to.meta.title || 'AI引流'} - AI引流智能体运营系统`
 
   // Allow no-auth pages
   if (to.meta.noAuth) {

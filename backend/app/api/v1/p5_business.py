@@ -40,6 +40,7 @@ async def demo_scan_enterprise(
     company_name: str = Query(..., min_length=1, description="企业全称"),
     industry: str = Query("", description="所属行业"),
     main_business: str = Query("", description="主营产品/业务"),
+    fast: bool = Query(False, description="快速模式：跳过规划，1轮/模型，约15秒出结果"),
     db: AsyncSession = Depends(get_db),
 ):
     """Public: full enterprise GEO scan. Auto-discovers rivals from industry. Rate-limited."""
@@ -53,7 +54,7 @@ async def demo_scan_enterprise(
 
     svc = DemoService(db)
     try:
-        return await svc.scan_enterprise(company_name=name, industry=industry, main_business=main_business)
+        return await svc.scan_enterprise(company_name=name, industry=industry, main_business=main_business, fast=fast)
     except Exception as e:
         raise HTTPException(status_code=500, detail="当前模型接口繁忙，请30秒后重新查询")
 

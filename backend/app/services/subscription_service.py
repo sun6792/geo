@@ -12,6 +12,7 @@ from app.core.pagination import PaginationParams
 from app.core.security import hash_password
 from app.models.subscription import SubAccount, PaymentRecord
 from app.models.customer import Customer
+from app.models.agent import SourceVerification
 
 
 class SubscriptionService:
@@ -167,7 +168,12 @@ class CustomerPortalService:
             "date": today.isoformat(),
             "published_today": pub_count,
             "model_rankings": ranking,
-            "new_sources": 0,  # Incremented when source verification runs
+            "new_sources": (await self.db.execute(
+                select(func.count(SourceVerification.id)).where(
+                    SourceVerification.customer_id == self.customer_id,
+                    func.date(SourceVerification.verified_at) == today,
+                )
+            )).scalar() or 0,
         }
 
     async def get_weekly_summary(self) -> dict:
@@ -195,14 +201,87 @@ class CustomerPortalService:
             )
         )).scalar() or 0
 
+        # ── Calculate real growth metrics ────────────────────────
+        prev_week_start = week_start - timedelta(days=7)
+
+        # Exposure growth: compare this week vs last week detection mentions
+        from app.models.agent import DetectionResult, FiveDimScore
+        this_week_mentions = (await self.db.execute(
+            select(func.count(DetectionResult.id)).where(
+                DetectionResult.customer_id == self.customer_id,
+                DetectionResult.brand_mentioned == True,
+                func.date(DetectionResult.detected_at) >= week_start,
+            )
+        )).scalar() or 1
+
+        prev_week_mentions = (await self.db.execute(
+            select(func.count(DetectionResult.id)).where(
+                DetectionResult.customer_id == self.customer_id,
+                DetectionResult.brand_mentioned == True,
+                func.date(DetectionResult.detected_at) >= prev_week_start,
+                func.date(DetectionResult.detected_at) < week_start,
+            )
+        )).scalar() or 1
+
+        exposure_growth_pct = round((this_week_mentions - prev_week_mentions) / max(prev_week_mentions, 1) * 100, 1)
+        exposure_growth = f"{'+' if exposure_growth_pct >= 0 else ''}{exposure_growth_pct}%"
+
+        # Rank improvement: compare average rank
+        this_week_ranks = (await self.db.execute(
+            select(func.avg(DetectionResult.rank_position)).where(
+                DetectionResult.customer_id == self.customer_id,
+                DetectionResult.rank_position.isnot(None),
+                func.date(DetectionResult.detected_at) >= week_start,
+            )
+        )).scalar()
+
+        prev_week_ranks = (await self.db.execute(
+            select(func.avg(DetectionResult.rank_position)).where(
+                DetectionResult.customer_id == self.customer_id,
+                DetectionResult.rank_position.isnot(None),
+                func.date(DetectionResult.detected_at) >= prev_week_start,
+                func.date(DetectionResult.detected_at) < week_start,
+            )
+        )).scalar()
+
+        if this_week_ranks and prev_week_ranks:
+            rank_improvement = round(prev_week_ranks - this_week_ranks, 1)
+            rank_text = f"{'+' if rank_improvement > 0 else ''}{rank_improvement}位" if rank_improvement != 0 else "持平"
+        else:
+            rank_text = "暂无数据"
+
+        # Weight score change: from FiveDimScore
+        this_week_scores = (await self.db.execute(
+            select(func.avg(FiveDimScore.total_score)).where(
+                FiveDimScore.customer_id == self.customer_id,
+                FiveDimScore.model_name.is_(None),  # overall score
+                func.date(FiveDimScore.scored_at) >= week_start,
+            )
+        )).scalar()
+
+        prev_week_scores = (await self.db.execute(
+            select(func.avg(FiveDimScore.total_score)).where(
+                FiveDimScore.customer_id == self.customer_id,
+                FiveDimScore.model_name.is_(None),
+                func.date(FiveDimScore.scored_at) >= prev_week_start,
+                func.date(FiveDimScore.scored_at) < week_start,
+            )
+        )).scalar()
+
+        if this_week_scores and prev_week_scores:
+            score_change = round(this_week_scores - prev_week_scores, 1)
+            score_text = f"{'+' if score_change > 0 else ''}{score_change}分" if score_change != 0 else "持平"
+        else:
+            score_text = "暂无数据"
+
         return {
             "week_start": week_start.isoformat(),
             "week_end": today.isoformat(),
             "total_published": weekly_pubs,
             "new_assets": weekly_assets,
-            "exposure_growth": "+12%",  # Placeholder — requires more data for real calc
-            "avg_rank_improvement": "+2.3位",
-            "weight_score_change": "+8.5分",
+            "exposure_growth": exposure_growth,
+            "avg_rank_improvement": rank_text,
+            "weight_score_change": score_text,
         }
 
     async def get_weekly_reviews(self) -> list:

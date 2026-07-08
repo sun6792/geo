@@ -1,10 +1,10 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>周度复盘迭代 (智能体 5)</h2>
+      <h2>周度复盘报告</h2>
       <div>
         <el-button type="primary" @click="generateReview" :loading="generating">生成本周复盘</el-button>
-        <el-button @click="$router.push('/weekly-review/rules')">GEO 规则库</el-button>
+        <el-button @click="$router.push('/weekly-review/rules')">AI引流规则库</el-button>
       </div>
     </div>
 

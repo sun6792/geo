@@ -70,3 +70,19 @@ async def update_customer(
         raise ForbiddenException()
     svc = CustomerService(db)
     return await svc.update_customer(customer_id, body.model_dump(exclude_unset=True))
+
+
+@router.delete("/{customer_id}")
+async def delete_customer(
+    customer_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a customer. Super admin only, irreversible."""
+    if not current_user["is_super_admin"]:
+        raise ForbiddenException()
+    from sqlalchemy import delete
+    from app.models.customer import Customer
+    await db.execute(delete(Customer).where(Customer.id == customer_id))
+    await db.commit()
+    return {"deleted": True}

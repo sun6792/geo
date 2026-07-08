@@ -1,10 +1,9 @@
 <template>
   <div class="page-container">
-    <div class="page-header"><h2>客户数据看板（智能体4+5）</h2></div>
+    <div class="page-header"><h2>客户数据看板</h2></div>
 
-    <!-- Agent 4: Publishing data -->
     <div class="detail-section">
-      <div class="section-title">智能体4 · 发布数据</div>
+      <div class="section-title">发布数据</div>
       <el-row :gutter="16">
         <el-col :span="6"><div class="stat-card"><div class="stat-label">今日发布</div><div class="stat-value">{{ daily?.published_today || 0 }}</div></div></el-col>
         <el-col :span="6"><div class="stat-label">各模型提及</div>
@@ -13,9 +12,8 @@
       </el-row>
     </div>
 
-    <!-- Agent 5: Weekly reviews -->
     <div class="detail-section">
-      <div class="section-title">智能体5 · 周度复盘报告</div>
+      <div class="section-title">周度复盘报告</div>
       <el-table :data="weekly?.reviews || []" stripe>
         <el-table-column prop="week_start" label="周起始" width="120" />
         <el-table-column prop="week_end" label="周结束" width="120" />

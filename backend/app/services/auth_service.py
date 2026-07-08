@@ -25,16 +25,29 @@ class AuthService:
         self.db = db
 
     async def login(self, email: str, password: str, request: Request) -> dict:
-        """Authenticate user by email + password. Returns token pair on success."""
-        # Find user
-        result = await self.db.execute(select(User).where(User.email == email, User.is_active == True))
+        """Authenticate by username OR email + password. Returns token pair."""
+        # Try username first, then email
+        result = await self.db.execute(
+            select(User).where(
+                ((User.username == email) | (User.email == email)),
+                User.is_active == True,
+            )
+        )
         user = result.scalar_one_or_none()
+
+        # Also check customer active status
+        if user and user.customer_id:
+            from app.models.customer import Customer
+            cust = await self.db.execute(select(Customer).where(Customer.id == user.customer_id))
+            customer = cust.scalar_one_or_none()
+            if customer and customer.status != "active":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已到期暂停，请联系管理员续费")
 
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("User-Agent", "unknown")
 
         if not user or not verify_password(password, user.password_hash):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误")
 
         # Create tokens
         access_token = create_access_token(user.id, user.customer_id, user.is_super_admin)

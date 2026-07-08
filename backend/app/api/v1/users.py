@@ -43,6 +43,7 @@ async def create_user(
         display_name=body.display_name,
         phone=body.phone,
         role_ids=body.role_ids,
+        username=body.username or "",
     )
 
 

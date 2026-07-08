@@ -112,7 +112,54 @@ class ReviewAgentService:
             ))
 
         await self.db.flush()
+
+        # ── Data Backflow: Feed insights back to Agent 1 ──────
+        await self._generate_backflow_records(review.id, metrics_data, generated_by)
+
         return review
+
+    async def _generate_backflow_records(self, review_id: uuid.UUID,
+                                          metrics_data: dict,
+                                          generated_by: uuid.UUID | None = None) -> None:
+        """Generate BackflowRecords that feed Agent5 insights back to Agent1.
+
+        This creates the self-evolving feedback loop:
+        - Declining keywords → suggest new detection keywords
+        - Low-performing models → suggest adjusted model targeting
+        - KB gaps → trigger optimization tasks
+        """
+        from app.models.identity import BackflowRecord
+
+        detailed = metrics_data.get("detailed", [])
+        for metric in detailed:
+            trend = metric.get("trend")
+            metric_type = metric.get("type")
+            model_name = metric.get("model_name")
+
+            if metric_type == "exposure" and trend == "down" and model_name:
+                self.db.add(BackflowRecord(
+                    customer_id=self.customer_id,
+                    source_weekly_review_id=review_id,
+                    backflow_type="keyword_optimization",
+                    description=f"{model_name}品牌提及率下降，建议扩展探测关键词覆盖",
+                    old_value={"mention_rate": metric.get("previous", 0)},
+                    new_value={"mention_rate": metric.get("current", 0)},
+                    affected_models=[model_name],
+                    priority="important",
+                    created_by=generated_by or uuid.UUID(int=0),
+                ))
+
+            if metric_type == "asset" and trend == "down":
+                self.db.add(BackflowRecord(
+                    customer_id=self.customer_id,
+                    source_weekly_review_id=review_id,
+                    backflow_type="content_gap",
+                    description="知识库资产增长放缓，建议加速基础/营销/多模态三类资产建设",
+                    old_value={"weekly_assets": metric.get("previous", 0)},
+                    new_value={"weekly_assets": metric.get("current", 0)},
+                    priority="urgent",
+                    created_by=generated_by or uuid.UUID(int=0),
+                ))
 
     async def get_review_metrics(self, review_id: uuid.UUID) -> list[WeeklyReviewMetric]:
         result = await self.db.execute(

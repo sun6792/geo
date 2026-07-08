@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Central configuration for the GEO AI Platform."""
 
     # ── Application ──────────────────────────────────────────────
-    APP_NAME: str = "GEO AI Platform"
+    APP_NAME: str = "AI引流 Platform"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
@@ -33,12 +33,53 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE_MB: int = 50
 
-    # ── LLM Providers ────────────────────────────────────────────
-    LLM_PROVIDER: str = "openai"  # "openai" | "anthropic"
+    # ── LLM: DeepSeek (综合分析与内容生成) ──────────────────────
+    LLM_PROVIDER: str = "openai"
     OPENAI_API_KEY: Optional[str] = None
-    OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_MODEL: str = "deepseek-chat"
     ANTHROPIC_API_KEY: Optional[str] = None
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
+
+    # ── 豆包 (火山引擎 Ark) ─────────────────────────────────────
+    DOUBAO_API_KEY: Optional[str] = None
+    DOUBAO_API_BASE: str = "https://ark.cn-beijing.volces.com/api/v3"
+    DOUBAO_MODEL: str = "ep-20260707115715-h2ptf"
+
+    # ── 文心一言 (百度千帆) ─────────────────────────────────────
+    WENXIN_API_KEY: Optional[str] = None
+    WENXIN_API_BASE: str = "https://qianfan.baidubce.com/v2"
+    WENXIN_MODEL: str = "ernie-4.0-turbo-128k"
+
+    # ── 通义千问 (阿里云 DashScope) ─────────────────────────────
+    QIANWEN_API_KEY: Optional[str] = None
+    QIANWEN_API_BASE: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    QIANWEN_MODEL: str = "qwen-plus"
+
+    # ── 智谱 GLM ────────────────────────────────────────────────
+    ZHIPU_API_KEY: Optional[str] = None
+    ZHIPU_API_BASE: str = "https://open.bigmodel.cn/api/paas/v4"
+    ZHIPU_MODEL: str = "glm-4-flash"
+
+    # ── Kimi (Moonshot) ─────────────────────────────────────────
+    KIMI_API_KEY: Optional[str] = None
+    KIMI_API_BASE: str = "https://api.moonshot.cn/v1"
+    KIMI_MODEL: str = "moonshot-v1-8k"
+
+    # ── 腾讯混元 ────────────────────────────────────────────────
+    HUNYUAN_API_KEY: Optional[str] = None
+    HUNYUAN_API_BASE: str = "https://api.hunyuan.cloud.tencent.com/v1"
+    HUNYUAN_MODEL: str = "hunyuan-pro"
+
+    # ── 讯飞星火 (iFlytek Spark) ───────────────────────────────
+    XINGHUO_API_KEY: Optional[str] = None
+    XINGHUO_API_SECRET: Optional[str] = None
+    XINGHUO_APP_ID: Optional[str] = None
+    XINGHUO_API_BASE: str = "https://spark-api-open.xf-yun.com/v1"
+    XINGHUO_MODEL: str = "4.0Ultra"
+
+    # ── Celery ──────────────────────────────────────────────────
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
 
     # ── Embedding ────────────────────────────────────────────────
     EMBEDDING_PROVIDER: str = "openai"  # "openai" | "local"

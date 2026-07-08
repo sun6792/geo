@@ -3,7 +3,7 @@
     <!-- 极简顶部 -->
     <div style="background:#fff;padding:16px 32px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between">
       <div style="display:flex;align-items:center;gap:12px">
-        <h2 style="margin:0;font-size:20px;color:#1a1a2e">GEO 效果看板</h2>
+        <h2 style="margin:0;font-size:20px;color:#1a1a2e">AI引流 效果看板</h2>
         <el-tag size="small" type="info">{{ authStore.user?.display_name || '客户' }}</el-tag>
       </div>
       <el-button @click="handleLogout" size="small">退出</el-button>

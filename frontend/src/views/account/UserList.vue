@@ -2,16 +2,17 @@
   <div class="page-container">
     <div class="page-header">
       <h2>用户管理</h2>
-      <el-button type="primary" @click="showCreateDialog = true">新建用户</el-button>
+      <el-button type="primary" @click="openCreateDialog()">新建用户</el-button>
     </div>
     <div class="search-bar">
-      <el-input v-model="search" placeholder="搜索邮箱或姓名..." style="width: 260px" clearable @clear="fetchUsers" @keyup.enter="fetchUsers" />
+      <el-input v-model="search" placeholder="搜索用户名或姓名..." style="width: 260px" clearable @clear="fetchUsers" @keyup.enter="fetchUsers" />
       <el-button type="primary" @click="fetchUsers">搜索</el-button>
     </div>
     <div class="table-card">
       <el-table :data="users" v-loading="loading" stripe>
-        <el-table-column prop="display_name" label="姓名" min-width="120" />
-        <el-table-column prop="email" label="邮箱" min-width="200" />
+        <el-table-column prop="username" label="用户名" width="130"><template #default="{row}">{{ row.username || row.email?.split('@')[0] || '-' }}</template></el-table-column>
+        <el-table-column prop="display_name" label="姓名" min-width="100" />
+        <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column label="角色" min-width="180">
           <template #default="{ row }">
             <el-tag v-for="r in row.roles" :key="r.id" size="small" style="margin-right:4px">{{ r.name }}</el-tag>
@@ -35,6 +36,12 @@
 
     <el-dialog v-model="showCreateDialog" :title="editingUser ? '编辑用户' : '新建用户'" width="500px">
       <el-form ref="userFormRef" :model="userForm" :rules="userRules" label-width="80px">
+        <el-form-item label="客户公司" prop="customer_id" v-if="!editingUser">
+          <el-select v-model="userForm.customer_id" style="width:100%" placeholder="选择所属客户公司" filterable @change="onCustomerSelect">
+            <el-option v-for="c in customerOpts" :key="c.id" :label="c.name + ' (' + (c.slug||'') + ')'" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="用户名" prop="username"><el-input v-model="userForm.username" placeholder="拼音+数字，如 pinshang001" /></el-form-item>
         <el-form-item label="姓名" prop="display_name"><el-input v-model="userForm.display_name" /></el-form-item>
         <el-form-item label="邮箱" prop="email"><el-input v-model="userForm.email" :disabled="!!editingUser" /></el-form-item>
         <el-form-item label="密码" prop="password" v-if="!editingUser"><el-input v-model="userForm.password" type="password" show-password /></el-form-item>
@@ -57,20 +64,31 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usersApi } from '@/api/users'
 import { rolesApi } from '@/api/roles'
+import http from '@/api/index'
 import type { FormInstance } from 'element-plus'
 
 const loading = ref(false); const saving = ref(false)
-const users = ref<any[]>([]); const allRoles = ref<any[]>([])
+const users = ref<any[]>([]); const allRoles = ref<any[]>([]); const customerOpts = ref<any[]>([])
 const page = ref(1); const total = ref(0); const search = ref('')
 const showCreateDialog = ref(false); const showRoleDialog = ref(false)
 const editingUser = ref<any>(null); const roleTargetUser = ref<any>(null)
 const selectedRoleIds = ref<string[]>([])
 const userFormRef = ref<FormInstance>()
-const userForm = reactive({ display_name: '', email: '', password: '', phone: '' })
+const userForm = reactive({ display_name: '', email: '', password: '', phone: '', username: '', customer_id: '' })
 const userRules = {
   display_name: [{ required: true, message: '请输入姓名' }],
+  username: [{ required: true, message: '请输入用户名（拼音+数字）' }, { pattern: /^[a-z0-9]+$/, message: '仅小写字母和数字' }],
   email: [{ required: true, message: '请输入邮箱' }],
   password: [{ required: true, message: '请输入密码' }, { min: 6, message: '至少6位' }],
+  customer_id: [{ required: true, message: '请选择客户公司' }],
+}
+
+async function loadCustomers() {
+  try { const r = await (await import('@/api/index')).default.get('/customers/', { params: { page:1, page_size:100 } }); customerOpts.value = r.data.items || [] } catch {}
+}
+function onCustomerSelect(cid: string) {
+  const c = customerOpts.value.find((x:any) => x.id === cid)
+  if (c && !userForm.username) userForm.username = (c.slug || 'user') + String(Math.floor(Math.random()*900+100))
 }
 
 async function fetchUsers() {
@@ -91,7 +109,9 @@ async function handleSaveUser() {
   } catch (e: any) { ElMessage.error(e.response?.data?.error || '操作失败') }
   saving.value = false
 }
-function openEditDialog(u: any) { editingUser.value = u; userForm.display_name = u.display_name; userForm.email = u.email; userForm.phone = u.phone || ''; userForm.password = ''; showCreateDialog.value = true }
+function resetForm() { editingUser.value = null; userForm.display_name = ''; userForm.email = ''; userForm.phone = ''; userForm.password = ''; userForm.username = ''; userForm.customer_id = '' }
+function openCreateDialog() { resetForm(); showCreateDialog.value = true }
+function openEditDialog(u: any) { editingUser.value = u; userForm.display_name = u.display_name; userForm.email = u.email; userForm.phone = u.phone || ''; userForm.username = u.username || ''; userForm.customer_id = u.customer_id || ''; userForm.password = ''; showCreateDialog.value = true }
 function openRoleDialog(u: any) { roleTargetUser.value = u; selectedRoleIds.value = u.roles?.map((r: any) => r.id) || []; showRoleDialog.value = true }
 async function handleAssignRoles() {
   if (!roleTargetUser.value) return; saving.value = true
@@ -102,6 +122,5 @@ async function handleAssignRoles() {
 async function handleDeactivate(u: any) {
   try { await ElMessageBox.confirm(`禁用 "${u.display_name}"？`, '确认', { type: 'warning' }); await usersApi.deactivate(u.id); ElMessage.success('已禁用'); fetchUsers() } catch {}
 }
-function resetForm() { editingUser.value = null; userForm.display_name = ''; userForm.email = ''; userForm.password = ''; userForm.phone = '' }
-onMounted(() => { fetchUsers(); fetchRoles() })
+onMounted(() => { fetchUsers(); fetchRoles(); loadCustomers() })
 </script>

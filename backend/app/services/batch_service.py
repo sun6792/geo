@@ -189,23 +189,38 @@ class MonitoringService:
 
     async def get_usage_stats(self) -> dict:
         """Get resource usage statistics."""
-        from app.models.content import ContentBrief, ContentDraft
         from app.models.knowledge_base import KbAsset
         from app.models.agent import DetectionResult
 
-        customer_filter = {"customer_id": self.customer_id} if self.customer_id else {}
+        cid = self.customer_id
 
-        kb_count = (await self.db.execute(
-            select(func.count(KbAsset.id)).where(KbAsset.is_latest == True, **customer_filter)
-        )).scalar() or 0
+        try:
+            kb_count = (await self.db.execute(
+                select(func.count(KbAsset.id)).where(KbAsset.is_latest == True)
+            )).scalar() or 0
+        except Exception:
+            kb_count = 0
 
-        content_count = (await self.db.execute(
-            select(func.count(ContentDraft.id)).where(**customer_filter)
-        )).scalar() or 0
+        try:
+            if cid:
+                detection_count = (await self.db.execute(
+                    select(func.count(DetectionResult.id)).where(DetectionResult.customer_id == cid)
+                )).scalar() or 0
+            else:
+                detection_count = (await self.db.execute(
+                    select(func.count(DetectionResult.id))
+                )).scalar() or 0
+        except Exception:
+            detection_count = 0
 
-        detection_count = (await self.db.execute(
-            select(func.count(DetectionResult.id)).where(**customer_filter)
-        )).scalar() or 0
+        content_count = 0
+        try:
+            from app.models.content import ContentDraft
+            content_count = (await self.db.execute(
+                select(func.count(ContentDraft.id))
+            )).scalar() or 0
+        except Exception:
+            pass
 
         return {
             "kb_assets": kb_count,

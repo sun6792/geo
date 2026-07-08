@@ -3,7 +3,7 @@
     <div class="page-header"><h2>新建创作任务</h2></div>
     <div class="table-card" style="max-width:800px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item label="创作标题" prop="title"><el-input v-model="form.title" placeholder="如：XX品牌GEO深度主稿" maxlength="200" /></el-form-item>
+        <el-form-item label="创作标题" prop="title"><el-input v-model="form.title" placeholder="如：XX品牌AI引流深度主稿" maxlength="200" /></el-form-item>
         <el-form-item label="内容类型" prop="content_type">
           <el-select v-model="form.content_type" style="width:100%">
             <el-option label="深度主稿" value="blog_post" /><el-option label="社交短文" value="social_media" />

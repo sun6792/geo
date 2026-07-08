@@ -34,14 +34,18 @@ class AccountService:
         users = (await self.db.execute(query.offset(pagination.offset).limit(pagination.limit).order_by(User.created_at.desc()))).scalars().all()
         return list(users), total
 
-    async def create_user(self, email: str, password: str, display_name: str, phone: Optional[str], role_ids: list[uuid.UUID]) -> User:
-        # Check unique email within tenant
+    async def create_user(self, email: str, password: str, display_name: str, phone: Optional[str], role_ids: list[uuid.UUID], username: str = "") -> User:
         existing = (await self.db.execute(select(User).where(User.customer_id == self.customer_id, User.email == email))).scalar_one_or_none()
         if existing:
-            raise ConflictException(f"User with email '{email}' already exists")
+            raise ConflictException(f"该邮箱已存在")
+        if username:
+            existing_u = (await self.db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+            if existing_u:
+                raise ConflictException(f"用户名 '{username}' 已被使用")
 
         user = User(
             customer_id=self.customer_id,
+            username=username or None,
             email=email,
             password_hash=hash_password(password),
             display_name=display_name,

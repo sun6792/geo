@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>GEO 规则库管理</h2>
+      <h2>AI引流 规则库管理</h2>
       <span style="color:#909399;font-size:13px">基于探测数据反推的各模型权重规则</span>
     </div>
     <div class="search-bar">
@@ -67,7 +67,7 @@ import { formatDate } from '@/utils/format'
 
 const MODEL_OPTIONS = [
   { label: '豆包', value: 'doubao' }, { label: '文心一言', value: 'wenxin' }, { label: '通义千问', value: 'qianwen' },
-  { label: '腾讯元宝', value: 'yuanbao' }, { label: '讯飞星火', value: 'xinghuo' }, { label: 'DeepSeek', value: 'deepseek' }, { label: 'Kimi', value: 'kimi' },
+  { label: '腾讯元宝', value: 'yuanbao' }, { label: '讯飞星火', value: 'xinghuo' },
 ]
 const MODEL_LABELS: Record<string, string> = Object.fromEntries(MODEL_OPTIONS.map(m => [m.value, m.label]))
 function modelLabel(m: string) { return MODEL_LABELS[m] || m }

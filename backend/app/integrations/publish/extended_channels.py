@@ -11,6 +11,7 @@ from app.integrations.publish.base import (
     BaseChannelAdapter, ChannelAuth, PublishContent, PublishResult,
     ADAPTER_REGISTRY,
 )
+from app.integrations.publish.generic_adapter import GenericHttpAdapter
 
 
 # ══════════════════════════════════════════════════════════════════

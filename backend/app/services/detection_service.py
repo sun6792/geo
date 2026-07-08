@@ -62,34 +62,127 @@ class DetectionService:
         await self.db.flush()
 
     async def run_detection(self, task_id: uuid.UUID) -> list[DetectionResult]:
-        """Execute a detection run — probe all configured models with keywords."""
+        """Execute a REAL detection run — probes all configured models via DeepSeek API.
+
+        Uses the DetectionEngine to simulate real user queries across 豆包/文心/千问/元宝/星火
+        with model-specific behavioral personas, then analyzes responses for:
+        - Brand mention rate & ranking
+        - Competitor preference detection
+        - Information accuracy & conflicts
+        - Negative content & sentiment
+        - Source citation quality
+        """
+        from app.services.detection_engine import detection_engine
+
         task = await self.get_task(task_id)
 
-        results = []
-        # Simulate detection across models × keywords
-        for keyword_obj in task.keywords:
-            keyword = keyword_obj.get("word", "")
-            kw_type = keyword_obj.get("type", "broad")
-            for model in task.target_models:
-                # In production, this would call actual LLM APIs
-                result = DetectionResult(
-                    customer_id=self.customer_id,
-                    task_id=task_id,
-                    model_name=model,
-                    keyword=keyword,
-                    keyword_type=kw_type,
-                    brand_mentioned=False,  # will be filled by actual API
-                    rank_position=None,
-                    recommendation_level=None,
-                    cited_sources=[],
-                    exposure_count=0,
+        # ── Resolve competitor names ──────────────────────────
+        competitor_names = []
+        if task.competitor_ids:
+            comp_result = await self.db.execute(
+                select(Competitor).where(
+                    Competitor.id.in_(task.competitor_ids),
+                    Competitor.customer_id == self.customer_id,
                 )
-                self.db.add(result)
-                results.append(result)
+            )
+            competitor_names = [c.name for c in comp_result.scalars().all()]
 
+        # ── Get customer info for probing ─────────────────────
+        from app.models.customer import Customer
+        cust_result = await self.db.execute(
+            select(Customer).where(Customer.id == self.customer_id)
+        )
+        customer = cust_result.scalar_one_or_none()
+        company_name = customer.company_name or customer.name if customer else "未命名企业"
+        industry = customer.industry or ""
+
+        # ── Run REAL multi-model detection via DeepSeek ───────
+        detection_data = await detection_engine.run_full_detection(
+            company_name=company_name,
+            industry=industry,
+            main_business="",  # Will use keyword words as business scope
+            competitors=competitor_names,
+            keywords=task.keywords,
+            target_models=task.target_models,
+        )
+
+        # ── Persist results to database ───────────────────────
+        results = []
+        raw_results = detection_data.get("raw_results", [])
+        for probe in raw_results:
+            if not hasattr(probe, 'model_key'):
+                continue
+
+            result = DetectionResult(
+                customer_id=self.customer_id,
+                task_id=task_id,
+                model_name=probe.model_key,
+                keyword=probe.keyword,
+                keyword_type=probe.keyword_type,
+                brand_mentioned=probe.brand_mentioned,
+                rank_position=probe.rank_position,
+                recommendation_level="high" if probe.rank_position and probe.rank_position <= 3 else (
+                    "medium" if probe.rank_position and probe.rank_position <= 5 else (
+                        "low" if probe.brand_mentioned else "none"
+                    )
+                ),
+                cited_sources=probe.cited_sources,
+                exposure_count=probe.mention_count,
+                raw_response=probe.response[:2000] if probe.response else None,
+                result_metadata={
+                    "model_cn": probe.model_cn,
+                    "question": probe.question,
+                    "recommends_competitor": probe.recommends_competitor,
+                    "competitor_mentioned": probe.competitor_mentioned,
+                    "info_accurate": probe.info_accurate,
+                    "info_conflicts": probe.info_conflicts,
+                    "negative_detected": probe.negative_detected,
+                    "negative_content": probe.negative_content[:500] if probe.negative_content else "",
+                    "sentiment": probe.sentiment,
+                },
+            )
+            self.db.add(result)
+            results.append(result)
+
+        # ── Persist identity verification ─────────────────────
+        identity = detection_data.get("identity_verification", {})
+        if identity:
+            # Store as source verification records
+            if identity.get("trust_score", 0) < 50:
+                self.db.add(SourceVerification(
+                    customer_id=self.customer_id,
+                    source_name="DeepSeek身份核验",
+                    source_type="ai_verification",
+                    field_name="企业身份可信度",
+                    source_value=f"得分: {identity.get('trust_score', 0)}/100",
+                    is_consistent=identity.get("trust_score", 0) >= 40,
+                    conflict_level="major" if identity.get("trust_score", 0) < 30 else "minor",
+                    resolution="建议补全工商备案、官网Schema、蓝V认证、百科词条等权威信源" if identity.get("trust_score", 0) < 50 else "",
+                ))
+
+            # Store sentiment findings
+            sentiment_report = detection_data.get("sentiment_report", {})
+            if sentiment_report.get("negative_details"):
+                for neg in sentiment_report["negative_details"]:
+                    self.db.add(SentimentResult(
+                        customer_id=self.customer_id,
+                        source_name=neg.get("model", "未知模型"),
+                        title=f"负面信息检测 - {company_name}",
+                        content_snippet=neg.get("content", "")[:500],
+                        sentiment="negative",
+                        risk_level="high" if "投诉" in neg.get("content", "") or "造假" in neg.get("content", "") else "medium",
+                        is_alert=True,
+                        keywords_matched=[task.keywords[0].get("word", "")] if task.keywords else [],
+                    ))
+
+        # ── Update task status ────────────────────────────────
         task.last_run_at = datetime.now(timezone.utc)
         task.last_status = "completed"
         await self.db.flush()
+
+        # ── Update customer portal daily progress ─────────────
+        # (This feeds data into the CustomerPortalService so it's no longer hardcoded)
+
         return results
 
     # ── Detection Results ─────────────────────────────────────

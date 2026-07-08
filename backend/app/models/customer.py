@@ -1,7 +1,7 @@
 """Customer (tenant) models."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text
 from app.core.db_types import UniversalUUID as UUID, UniversalJSON as JSONB
@@ -22,7 +22,10 @@ class Customer(Base):
     company_name: Mapped[str | None] = mapped_column(String(300))
     industry: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")  # active, suspended, deleted
-    subscription_tier: Mapped[str] = mapped_column(String(20), nullable=False, default="basic")  # basic, professional, enterprise
+    subscription_tier: Mapped[str] = mapped_column(String(20), nullable=False, default="basic")
+    plan_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("plans.id", ondelete="SET NULL"), nullable=True)
+    service_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    service_end: Mapped[date | None] = mapped_column(Date, nullable=True)
     max_users: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     max_kb_assets: Mapped[int] = mapped_column(Integer, nullable=False, default=500)
     max_content_per_month: Mapped[int] = mapped_column(Integer, nullable=False, default=50)

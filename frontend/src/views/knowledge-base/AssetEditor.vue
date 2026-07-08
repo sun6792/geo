@@ -20,32 +20,100 @@
           </el-select>
         </el-form-item>
 
-        <!-- 内容分类 -->
-        <el-form-item label="内容分类" prop="content_type">
-          <el-select v-model="form.content_type" placeholder="选择内容分类" style="width:100%">
-            <el-option v-for="c in contentTypeOptions" :key="c.value" :label="c.label" :value="c.value" />
-          </el-select>
-        </el-form-item>
+        <!-- 内容分区：所有字段平铺展示，每项独立填写，留空则跳过 -->
+        <template v-if="form.asset_type">
+          <el-divider content-position="left">
+            {{ form.asset_type==='basic' ? '基础资产详情（每个字段选填，有就写没有就跳过）' : form.asset_type==='marketing' ? '营销资产详情（每个字段选填，有就写没有就跳过）' : '多模态资产详情（上传图片视频等素材文件）' }}
+          </el-divider>
 
-        <!-- 基础/营销资产: 文本内容 -->
-        <el-form-item v-if="form.asset_type !== 'multimodal'" label="资产内容" prop="content_text">
-          <el-input v-model="form.content_text" type="textarea" :rows="10" placeholder="请输入资产详细内容（支持 Markdown 格式）" />
-        </el-form-item>
+          <template v-if="form.asset_type === 'basic'">
+            <!-- 联系方式：最优先，全部智能体都依赖 -->
+            <el-divider content-position="left"><el-tag type="danger" size="small">最重要</el-tag> 联系方式 — Agent3写文章自动带上，Agent1核验身份一致性</el-divider>
+            <el-row :gutter="12">
+              <el-col :span="8">
+                <el-form-item label="公司地址">
+                  <el-input v-model="basicFields.address" placeholder="详细地址，如：广东省东莞市XX镇XX路88号" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="联系电话">
+                  <el-input v-model="basicFields.phone" placeholder="如：0769-88886666 / 138xxxx" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="官方网站">
+                  <el-input v-model="basicFields.website" placeholder="如：www.example.com" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="12">
+              <el-col :span="12">
+                <el-form-item label="商务邮箱">
+                  <el-input v-model="basicFields.email" placeholder="客户咨询/商务合作邮箱" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="客服微信/热线">
+                  <el-input v-model="basicFields.service_contact" placeholder="如：微信ID 或 400电话" />
+                </el-form-item>
+              </el-col>
+            </el-row>
 
-        <!-- 多模态资产: 文件上传 -->
-        <el-form-item v-if="form.asset_type === 'multimodal'" label="上传文件" prop="file">
-          <el-upload ref="uploadRef" :auto-upload="false" :limit="3" drag
-            :on-change="onFileChange" :on-remove="onFileRemove"
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.avi">
-            <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
-            <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
-            <template #tip><div class="el-upload__tip">支持图片/PDF/文档/视频，单个不超过 50MB</div></template>
-          </el-upload>
-        </el-form-item>
+            <el-divider content-position="left">公司基础信息</el-divider>
+            <el-form-item label="公司简介">
+              <div class="form-tip">Agent1用此核验身份，Agent2计算基础资产分</div>
+              <el-input v-model="basicFields.intro" type="textarea" :rows="4" placeholder="公司成立时间、地点、规模、主营业务简介" />
+            </el-form-item>
+            <el-form-item label="产品参数">
+              <div class="form-tip">Agent2判断产品信息是否完整，Agent3创作时引用</div>
+              <el-input v-model="basicFields.product_spec" type="textarea" :rows="4" placeholder="主要产品名称、型号、规格、材质、产能等参数" />
+            </el-form-item>
+            <el-form-item label="资质证书">
+              <div class="form-tip">Agent1核验身份可信度，Agent3创作时增强权威性</div>
+              <el-input v-model="basicFields.certifications" type="textarea" :rows="4" placeholder="如：ISO9001质量管理体系认证、高新技术企业、专利号等" />
+            </el-form-item>
+          </template>
 
-        <!-- 标签 -->
-        <el-form-item label="标签">
-          <el-input v-model="tagInput" placeholder="输入标签后按回车添加" @keyup.enter="addTag">
+          <template v-if="form.asset_type === 'marketing'">
+            <el-form-item label="客户案例">
+              <div class="form-tip">Agent2判断案例丰富度，Agent3创作时自动融入文章</div>
+              <el-input v-model="mktFields.case_study" type="textarea" :rows="6" placeholder="描述2-3个代表客户案例：客户是谁、遇到什么问题、怎么解决的、效果怎么样。可匿名化处理" />
+            </el-form-item>
+            <el-form-item label="竞争优势">
+              <div class="form-tip">Agent3创作时突出差异化卖点</div>
+              <el-input v-model="mktFields.advantage" type="textarea" :rows="3" placeholder="和竞品相比，你们的差异化优势是什么？价格、品质、交期、服务、技术？" />
+            </el-form-item>
+            <el-form-item label="竞品分析">
+              <div class="form-tip">Agent1探测时参考，Agent5周报复盘时对比</div>
+              <el-input v-model="mktFields.competitor_analysis" type="textarea" :rows="3" placeholder="主要竞品有哪些？他们做得怎么样？你们在哪些方面比他们强？" />
+            </el-form-item>
+            <el-form-item label="行业避坑指南">
+              <div class="form-tip">Agent3创作"避坑类"文章时引用，吸引精准流量</div>
+              <el-input v-model="mktFields.pitfall_guide" type="textarea" :rows="3" placeholder="客户在采购这类产品时容易踩什么坑？怎么避免？" />
+            </el-form-item>
+          </template>
+
+          <template v-if="form.asset_type === 'multimodal'">
+            <el-form-item label="上传文件">
+              <div class="form-tip">Agent2诊断时检查多模态素材覆盖度，Agent4发布时挂载</div>
+              <el-upload ref="uploadRef" :auto-upload="false" :limit="5" drag
+                :on-change="onFileChange" :on-remove="onFileRemove"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.mp4,.mov,.avi">
+                <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+                <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
+                <template #tip><div class="el-upload__tip">支持图片/PDF/文档/视频，单个不超过 50MB。建议上传：工厂实拍/产品图/检测报告/宣传视频</div></template>
+              </el-upload>
+            </el-form-item>
+            <el-form-item label="文件描述">
+              <el-input v-model="multimodalFields.description" type="textarea" :rows="2" placeholder="描述上传的文件内容，用于Agent3生成图文搭配内容" />
+            </el-form-item>
+          </template>
+        </template>
+
+        <!-- 关键词标签：智能体1探测时自动匹配，智能体3创作时自动融入 -->
+        <el-form-item label="关键词标签">
+          <div class="form-tip">Agent1自动用这些词去大模型搜索，Agent3创作时自动融入文章</div>
+          <el-input v-model="tagInput" placeholder="如：运动面料、骑行装备、源头工厂" @keyup.enter="addTag">
             <template #append><el-button @click="addTag">添加</el-button></template>
           </el-input>
           <div style="margin-top:8px">
@@ -53,8 +121,9 @@
           </div>
         </el-form-item>
 
-        <!-- 排序号 -->
-        <el-form-item label="排序号">
+        <!-- 排序号：数字越大越靠前，Agent2诊断时优先检视排序靠前的资产 -->
+        <el-form-item label="权重排序">
+          <div class="form-tip">数字越大越优先，Agent2诊断时会先检查排序靠前的资产缺口</div>
           <el-input-number v-model="form.sort_order" :min="0" :max="9999" />
         </el-form-item>
 
@@ -94,39 +163,21 @@ const assetId = computed(() => route.params.id as string)
 const isEdit = computed(() => !!assetId.value)
 
 const form = reactive<Record<string, any>>({
-  title: '', asset_type: '', content_type: 'text',
-  content_text: '', tags: [] as string[], status: 'draft', sort_order: 0,
+  title: '', asset_type: '', tags: [] as string[], status: 'draft', sort_order: 0,
 })
+const basicFields = reactive({
+  address: '', phone: '', website: '', email: '', service_contact: '',
+  intro: '', product_spec: '', certifications: '',
+})
+const mktFields = reactive({ case_study: '', advantage: '', competitor_analysis: '', pitfall_guide: '' })
+const multimodalFields = reactive({ description: '' })
+
 const rules = {
   title: [{ required: true, message: '请输入资产名称', trigger: 'blur' }],
   asset_type: [{ required: true, message: '请选择资产类型', trigger: 'change' }],
-  content_type: [{ required: true, message: '请选择内容分类', trigger: 'change' }],
 }
 
-const contentTypeOptions = computed(() => {
-  const map: Record<string, {label:string,value:string}[]> = {
-    basic: [
-      { label:'企业简介', value:'company_intro' }, { label:'产品参数', value:'product_spec' },
-      { label:'资质证书', value:'certification' }, { label:'联系方式', value:'contact' },
-      { label:'其他文本', value:'text' },
-    ],
-    marketing: [
-      { label:'行业关键词', value:'keywords' }, { label:'客户案例', value:'case_study' },
-      { label:'差异化优势', value:'competitive_advantage' }, { label:'竞品分析', value:'competitor_analysis' },
-      { label:'话术模板', value:'script' },
-    ],
-    multimodal: [
-      { label:'产品图片', value:'image' }, { label:'技术白皮书', value:'whitepaper' },
-      { label:'案例视频', value:'video' }, { label:'宣传物料', value:'brochure' },
-    ],
-  }
-  return map[form.asset_type] || []
-})
-
-function onTypeChange() {
-  form.content_type = contentTypeOptions.value[0]?.value || 'text'
-  form.content_text = ''
-}
+function onTypeChange() { /* fields reset on type change via template v-if */ }
 
 function addTag() {
   const t = tagInput.value.trim()
@@ -147,20 +198,45 @@ async function handleSave() {
 
   saving.value = true
   try {
+    // Build structured content from all fields
+    let contentJson: any = {}
+    let contentText = ''
+    if (form.asset_type === 'basic') {
+      contentJson = { ...basicFields }
+      // 联系方式排最前面，Agent3创作时优先提取
+      const contactBlock = [
+        basicFields.address && `公司地址：${basicFields.address}`,
+        basicFields.phone && `联系电话：${basicFields.phone}`,
+        basicFields.website && `官方网站：${basicFields.website}`,
+        basicFields.email && `商务邮箱：${basicFields.email}`,
+        basicFields.service_contact && `客服联系：${basicFields.service_contact}`,
+      ].filter(Boolean).join('\n')
+      const infoBlock = [basicFields.intro, basicFields.product_spec, basicFields.certifications].filter(Boolean).join('\n\n---\n\n')
+      contentText = (contactBlock ? '## 联系方式\n' + contactBlock + '\n\n---\n\n' : '') + infoBlock
+    } else if (form.asset_type === 'marketing') {
+      contentJson = { ...mktFields }
+      contentText = [mktFields.case_study, mktFields.advantage, mktFields.competitor_analysis, mktFields.pitfall_guide]
+        .filter(Boolean).join('\n\n---\n\n')
+    } else if (form.asset_type === 'multimodal') {
+      contentJson = { ...multimodalFields }
+      contentText = multimodalFields.description || ''
+    }
+
     const payload: any = {
       title: form.title,
       asset_type: form.asset_type,
-      content_type: form.content_type,
-      content_text: form.content_text || '',
+      content_type: 'text',
+      content_text: contentText || form.title,
+      content_json: contentJson,
       tags: form.tags,
       status: form.status,
+      sort_order: form.sort_order,
     }
 
     if (isEdit.value) {
       await kbApi.updateAsset(assetId.value, payload)
       ElMessage.success('资产已更新')
     } else {
-      // Generate a slug from title
       payload.slug = form.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9一-龥-]/g, '').slice(0, 200) || 'asset-' + Date.now()
       await kbApi.createAsset(payload)
       ElMessage.success('资产已创建')
@@ -196,4 +272,5 @@ onMounted(async () => {
 
 <style scoped>
 .el-upload__tip { margin-top: 4px; font-size: 12px; color: #909399; }
+.form-tip { font-size: 12px; color: #67c23a; margin-bottom: 4px; line-height: 1.4; }
 </style>

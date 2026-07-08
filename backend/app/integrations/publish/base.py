@@ -292,8 +292,17 @@ ADAPTER_REGISTRY: dict[str, type[BaseChannelAdapter]] = {
 
 
 def get_adapter(channel_type: str, auth: ChannelAuth, config: dict | None = None) -> BaseChannelAdapter:
-    """Factory: instantiate the correct adapter for a channel type."""
+    """Factory: instantiate the correct adapter for a channel type.
+
+    If the channel type is not in the registry but has API config in config_json,
+    falls back to GenericHttpAdapter for UI-configured custom channels.
+    """
     adapter_cls = ADAPTER_REGISTRY.get(channel_type)
-    if not adapter_cls:
-        raise ValueError(f"Unknown channel type: {channel_type}. Available: {list(ADAPTER_REGISTRY.keys())}")
-    return adapter_cls(auth, config)
+    if adapter_cls:
+        return adapter_cls(auth, config)
+
+    # Fallback: use GenericHttpAdapter for custom UI-configured channels
+    if config and config.get("api"):
+        from app.integrations.publish.generic_adapter import GenericHttpAdapter
+        return GenericHttpAdapter(auth, config)
+    raise ValueError(f"Unknown channel type: {channel_type}. Available: {list(ADAPTER_REGISTRY.keys())}")
